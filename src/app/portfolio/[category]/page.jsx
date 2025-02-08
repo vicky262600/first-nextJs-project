@@ -15,11 +15,6 @@ const getData = (cat) => {
   return notFound();
 };
 
-export const metadata = {
-  title: "RIRA Portfolio",
-  description: "This is Contact Page",
-};
-
 const Category = ({ params }) => {
   const data = getData(params.category);
   return (
@@ -31,7 +26,7 @@ const Category = ({ params }) => {
           <div className={styles.content}>
             <h1 className={styles.title}>{item.title}</h1>
             <p className={styles.desc}>{item.desc}</p>
-            <Button text="See More" url="#" />
+            <Button text="See More" url="https://portfolio-lake-three-30.vercel.app/" />
           </div>
           <div className={styles.imgContainer}>
             <Image

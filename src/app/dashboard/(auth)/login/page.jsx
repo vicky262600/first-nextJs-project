@@ -1,11 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import styles from "./page.module.css";
-import { getProviders, signIn, useSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-const Login = ({ url }) => {
+const Login = () => {
   const session = useSession();
   const router = useRouter();
   const params = useSearchParams();
@@ -13,16 +13,19 @@ const Login = ({ url }) => {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    setError(params.get("error"));
-    setSuccess(params.get("success"));
+    setError(params.get("error") || "");
+    setSuccess(params.get("success") || "");
   }, [params]);
+
+  // ✅ Move navigation inside useEffect
+  useEffect(() => {
+    if (session.status === "authenticated") {
+      router.push("/dashboard");
+    }
+  }, [session.status, router]);
 
   if (session.status === "loading") {
     return <p>Loading...</p>;
-  }
-
-  if (session.status === "authenticated") {
-    router?.push("/dashboard");
   }
 
   const handleSubmit = (e) => {
@@ -42,41 +45,24 @@ const Login = ({ url }) => {
       <h2 className={styles.subtitle}>Please sign in to see the dashboard.</h2>
 
       <form onSubmit={handleSubmit} className={styles.form}>
-        <input
-          type="text"
-          placeholder="Email"
-          required
-          className={styles.input}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          required
-          className={styles.input}
-        />
+        <input type="text" placeholder="Email" required className={styles.input} />
+        <input type="password" placeholder="Password" required className={styles.input} />
         <button className={styles.button}>Login</button>
-        {error && error}
+        {error && <p className={styles.error}>{error}</p>}
       </form>
+      
       <button
-        onClick={() => {
-          signIn("google");
-        }}
-        className={styles.button + " " + styles.google}
+        onClick={() => signIn("google")}
+        className={`${styles.button} ${styles.google}`}
       >
         Login with Google
       </button>
+      
       <span className={styles.or}>- OR -</span>
+      
       <Link className={styles.link} href="/dashboard/register">
         Create new account
       </Link>
-      {/* <button
-        onClick={() => {
-          signIn("github");
-        }}
-        className={styles.button + " " + styles.github}
-      >
-        Login with Github
-      </button> */}
     </div>
   );
 };

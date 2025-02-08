@@ -18,7 +18,7 @@ const Portfolio = () => {
         <Link href="/portfolio/websites" className={styles.item}>
           <span className={styles.title}>Websites</span>
         </Link>
-        <Link href="/portfolio/application" className={styles.item}>
+        <Link href="https://portfolio-lake-three-30.vercel.app/#Projects" className={styles.item}>
           <span className={styles.title}>Application</span>
         </Link>
       </div>
