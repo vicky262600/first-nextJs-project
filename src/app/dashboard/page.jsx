@@ -27,9 +27,12 @@ const Dashboard = () => {
     return <p>Loading...</p>;
   }
 
-  if (session.status === "unauthenticated") {
-    router?.push("/dashboard/login");
-  }
+  useEffect(() => {
+    if (session.status === "unauthenticated") {
+      router.push("/dashboard/login");
+    }
+  }, [session.status, router]);
+  
 
   // Handle file selection (image)
   const handleFileChange = (e) => {
