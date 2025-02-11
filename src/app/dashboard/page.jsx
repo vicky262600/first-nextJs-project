@@ -19,7 +19,7 @@ const Dashboard = () => {
   const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
   const { data, mutate, error, isLoading } = useSWR(
-    session?.user?.name ? `http://localhost:3000/api/posts?username=${session.user.name}` : null,
+    session?.user?.name ? `https://rira-blogs.vercel.app/api/posts?username=${session.user.name}` : null,
     fetcher
   );
 
@@ -50,7 +50,7 @@ const Dashboard = () => {
         const desc = e.target[1].value;
         const content = e.target[2].value;
 
-        await fetch("/api/posts", {
+        await fetch("https://rira-blogs.vercel.app/api/posts", {
           method: "POST",
           body: JSON.stringify({
             title,
@@ -75,7 +75,7 @@ const Dashboard = () => {
   const handleDelete = async (id, username) => {
     if (username === session.user.name) {
       try {
-        await fetch(`/api/posts/${id}`, { method: "DELETE" });
+        await fetch(`https://rira-blogs.vercel.app/api/posts/${id}`, { method: "DELETE" });
         mutate();
         alert("The Blog has been deleted");
       } catch (err) {
