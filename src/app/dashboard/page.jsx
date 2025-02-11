@@ -9,7 +9,7 @@ import { storage } from "../lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const Dashboard = () => {
-  const session = useSession();
+  const { data: session, status } = useSession(); // Ensuring stability
   const router = useRouter();
 
   const [file, setFile] = useState(null);
@@ -19,20 +19,15 @@ const Dashboard = () => {
   const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
   const { data, mutate, error, isLoading } = useSWR(
-    `/api/posts?username=${session?.data?.user.name}`,
+    session?.user?.name ? `http://localhost:3000/api/posts?username=${session.user.name}` : null,
     fetcher
   );
 
-  if (session.status === "loading") {
-    return <p>Loading...</p>;
-  }
-
   useEffect(() => {
-    if (session.status === "unauthenticated") {
+    if (status === "unauthenticated") {
       router.push("/dashboard/login");
     }
-  }, [session.status, router]);
-  
+  }, [status, router]);
 
   // Handle file selection (image)
   const handleFileChange = (e) => {
@@ -43,42 +38,30 @@ const Dashboard = () => {
     e.preventDefault();
 
     if (file) {
-      // Create a reference for the image in Firebase storage
-      const imageRef = ref(storage, `blogeImages/${Date.now() + file.name}`);
-      const metadata = {
-        customMetadata: {
-          timestamp: new Date().toISOString(),
-        },
-      };
+      const imageRef = ref(storage, `blogImages/${Date.now() + file.name}`);
+      const metadata = { customMetadata: { timestamp: new Date().toISOString() } };
 
       try {
-        // Upload the file
         await uploadBytes(imageRef, file, metadata);
-
-        // Get the download URL
         const downloadURL = await getDownloadURL(imageRef);
-        setUrl(downloadURL); // Set the URL to state
+        setUrl(downloadURL);
 
-        // Prepare form data to submit to the server
         const title = e.target[0].value;
         const desc = e.target[1].value;
         const content = e.target[2].value;
-        const img = downloadURL; // Use the image URL from Firebase
 
-        // Send the data to your API
         await fetch("/api/posts", {
           method: "POST",
           body: JSON.stringify({
             title,
             desc,
-            img,
+            img: downloadURL,
             content,
-            username: session.data.user.name,
+            username: session.user.name,
           }),
         });
-        mutate(); // Update the list of posts
 
-        // Reset form and state
+        mutate(); // Refresh posts
         e.target.reset();
         setFile(null);
       } catch (err) {
@@ -90,12 +73,10 @@ const Dashboard = () => {
   };
 
   const handleDelete = async (id, username) => {
-    if (username === session.data.user.name) {
+    if (username === session.user.name) {
       try {
-        await fetch(`/api/posts/${id}`, {
-          method: "DELETE",
-        });
-        mutate(); // Update posts after deletion
+        await fetch(`/api/posts/${id}`, { method: "DELETE" });
+        mutate();
         alert("The Blog has been deleted");
       } catch (err) {
         console.log("Error deleting post:", err);
@@ -105,13 +86,17 @@ const Dashboard = () => {
     }
   };
 
-  if (session.status === "authenticated") {
-    return (
-      <div className={styles.container}>
-        <div className={styles.posts}>
-          {isLoading
-            ? "Loading posts..."
-            : data?.map((post) => (
+  return (
+    <div className={styles.container}>
+      {status === "loading" ? (
+        <p>Loading...</p>
+      ) : status === "authenticated" ? (
+        <>
+          <div className={styles.posts}>
+            {isLoading ? (
+              "Loading posts..."
+            ) : (
+              data?.map((post) => (
                 <div className={styles.post} key={post._id}>
                   <div className={styles.imgContainer}>
                     <Image src={post.img} alt={post.title} width={200} height={100} />
@@ -124,30 +109,34 @@ const Dashboard = () => {
                     X
                   </span>
                 </div>
-              ))}
-        </div>
+              ))
+            )}
+          </div>
 
-        <form className={styles.new} onSubmit={handleSubmit}>
-          <h1>Add New Post</h1>
-          <input type="text" placeholder="Title" className={styles.input} />
-          <input type="text" placeholder="Desc" className={styles.input} />
-          <textarea
-            placeholder="Content"
-            className={styles.textArea}
-            cols="30"
-            rows="10"
-          ></textarea>
-          <input
-            type="file"
-            accept=".png,.jpeg,.jpg"
-            className={styles.input}
-            onChange={handleFileChange} // Update state with selected file
-          />
-          <button className={styles.button}>Send</button>
-        </form>
-      </div>
-    );
-  }
+          <form className={styles.new} onSubmit={handleSubmit}>
+            <h1>Add New Post</h1>
+            <input type="text" placeholder="Title" className={styles.input} />
+            <input type="text" placeholder="Desc" className={styles.input} />
+            <textarea
+              placeholder="Content"
+              className={styles.textArea}
+              cols="30"
+              rows="10"
+            ></textarea>
+            <input
+              type="file"
+              accept=".png,.jpeg,.jpg"
+              className={styles.input}
+              onChange={handleFileChange}
+            />
+            <button className={styles.button}>Send</button>
+          </form>
+        </>
+      ) : (
+        <p>Redirecting...</p>
+      )}
+    </div>
+  );
 };
 
 export default Dashboard;

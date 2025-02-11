@@ -12,36 +12,30 @@ const handler = NextAuth({
       id: "credentials",
       name: "Credentials",
       async authorize(credentials) {
-        //Check if the user exists.
-        await connect();
+        await connect(); // Ensures a single DB connection
 
         try {
-          const user = await User.findOne({
-            email: credentials.email,
-          });
+          const user = await User.findOne({ email: credentials.email });
 
-          if (user) {
-            const isPasswordCorrect = await bcrypt.compare(
-              credentials.password,
-              user.password
-            );
-
-            if (isPasswordCorrect) {
-              return user;
-            } else {
-              throw new Error("Wrong Credentials!");
-            }
-          } else {
+          if (!user) {
             throw new Error("User not found!");
           }
+
+          const isPasswordCorrect = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
+
+          if (!isPasswordCorrect) {
+            throw new Error("Wrong Credentials!");
+          }
+
+          return user;
         } catch (err) {
-          throw new Error(err);
+          console.error("Authentication error:", err);
+          throw new Error(err.message || "An error occurred during authentication");
         }
       },
-    }),
-    GithubProvider({
-      clientId: process.env.GITHUB_ID,
-      clientSecret: process.env.GITHUB_SECRET,
     }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -51,7 +45,24 @@ const handler = NextAuth({
   pages: {
     error: "/dashboard/login",
   },
-
+  callbacks: {
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id;
+        session.user.email = token.email;
+        session.user.name = token.name;
+      }
+      return session;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+      }
+      return token;
+    },
+  },
 });
 
 export { handler as GET, handler as POST };
